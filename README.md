@@ -1,4 +1,3 @@
-```markdown
 # 🔧 NetExec MCP Setup Guide with Ollama
 
 A comprehensive guide to set up a fully local, free, and powerful AI-powered penetration testing environment using **NetExec**, **Model Context Protocol (MCP)**, and **Ollama**.
@@ -26,32 +25,50 @@ This guide enables you to interact with **NetExec** (a powerful network penetrat
 
 ## 🏗️ Architecture
 
+```mermaid
+flowchart TB
+    subgraph Local["Your Local System"]
+        Ollama["Ollama<br/>(Local LLM)<br/>llama3.2"]
+        Client["ollmcp Client<br/>(TUI Interface)"]
+        Server["sec-netexec-mcp<br/>(MCP Server)"]
+        
+        Client <-->|MCP Protocol| Ollama
+        Client --> Server
+    end
+    
+    subgraph Remote["Kali Linux Machine"]
+        NetExec["NetExec (nxc)<br/>• SMB, LDAP<br/>• WinRM, SSH<br/>• MSSQL, RDP"]
+    end
+    
+    Server -->|SSH Connection| NetExec
+    
+    User["👤 User"] -->|Natural Language| Client
+    
+    style User fill:#f9f,stroke:#333,stroke-width:2px
+    style Ollama fill:#ffd700,stroke:#333,stroke-width:2px
+    style Client fill:#87ceeb,stroke:#333,stroke-width:2px
+    style Server fill:#98fb98,stroke:#333,stroke-width:2px
+    style NetExec fill:#ff6b6b,stroke:#333,stroke-width:2px
 ```
-┌──────────────────────────────────────────────────────────────┐
-│                      Your Local System                       │
-│  ┌─────────────────┐     ┌───────────────────┐               │
-│  │  Ollama         │     │  ollmcp (Client)  │               │
-│  │  (Local LLM)    │◀────│  - TUI Interface  │              │
-│  │  - llama3.2     │     │  - MCP Protocol   │               │
-│  └─────────────────┘     └─────────┬─────────┘               │
-│                                     │                        │
-│                                     ▼                        │
-│                          ┌───────────────────┐               │
-│                          │ sec-netexec-mcp   │               │
-│                          │ (MCP Server)      │               │
-│                          └─────────┬─────────┘               │
-└─────────────────────────────────────┼────────────────────────┘
-                                      │ SSH
-                                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                      Kali Linux Machine                        │
-│                    ┌───────────────────┐                       │
-│                    │   NetExec (nxc)   │                       │
-│                    │   - SMB, LDAP,    │                       │
-│                    │   - WinRM, SSH,   │                       │
-│                    │   - MSSQL, RDP    │                       │
-│                    └───────────────────┘                       │
-└─────────────────────────────────────────────────────────────────┘
+
+### Data Flow Explanation
+
+```mermaid
+sequenceDiagram
+    participant User as 👤 User
+    participant Client as ollmcp Client
+    participant LLM as Ollama (LLM)
+    participant Server as sec-netexec-mcp
+    participant Kali as Kali NetExec
+
+    User->>Client: "Scan 192.168.1.0/24 for SMB"
+    Client->>LLM: Process natural language
+    LLM->>Server: Tool call: nxc_smb
+    Server->>Kali: SSH: nxc smb 192.168.1.0/24
+    Kali-->>Server: Return results
+    Server-->>LLM: Tool response
+    LLM-->>Client: Format response
+    Client-->>User: "Found 3 SMB hosts: ..."
 ```
 
 ## 📝 Prerequisites
@@ -302,4 +319,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ---
 
 **Made with ❤️ by the security community**
-```
