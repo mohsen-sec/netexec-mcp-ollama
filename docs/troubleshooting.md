@@ -1,7 +1,3 @@
-# 📄 troubleshooting.md
-
-Copy and paste the following content into a file named `troubleshooting.md` in the `docs/` directory of your repository.
-
 ```markdown
 # 🔧 Troubleshooting Guide
 
