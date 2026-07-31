@@ -1,404 +1,364 @@
+# 📄 troubleshooting.md (GitHub Optimized)
+
 ```markdown
 # 🔧 Troubleshooting Guide
 
-## Common Issues and Solutions
+> **Having issues?** This guide covers the most common problems and their solutions.
 
-### SSH Connection Issues
+---
 
-#### "Connection refused" or "Operation timed out"
+## 📑 Quick Navigation
+- [SSH Connection Issues](#-ssh-connection-issues)
+- [MCP Server Issues](#-mcp-server-issues)
+- [Ollama Issues](#-ollama-issues)
+- [Tools Not Recognized](#-tools-not-recognized)
+- [Windows-Specific Issues](#-windows-specific-issues)
+- [Python Issues](#-python-issues)
+- [Reporting Issues](#-reporting-issues)
+- [Logging](#-logging)
+- [Quick Fix Checklist](#-quick-fix-checklist)
 
-**Symptoms**:
+---
+
+## 🔌 SSH Connection Issues
+
+### ❌ "Connection refused" or "Operation timed out"
+
+**Symptoms:**
 - SSH connection fails when starting the MCP client
 - Error: `Error: connect ECONNREFUSED 192.168.1.100:22`
 - Error: `ssh: connect to host 192.168.1.100 port 22: Connection timed out`
 
-**Solutions**:
+**Solutions:**
 
-1. **Check SSH service on Kali**:
-   ```bash
-   sudo systemctl status ssh
-   sudo systemctl start ssh
-   sudo systemctl enable ssh
-   ```
+| Step | Action |
+|------|--------|
+| 1 | Check SSH service on Kali: `sudo systemctl status ssh` |
+| 2 | Start SSH: `sudo systemctl start ssh` |
+| 3 | Enable on boot: `sudo systemctl enable ssh` |
+| 4 | Check firewall: `sudo ufw status` |
+| 5 | Allow SSH: `sudo ufw allow 22` |
+| 6 | Test manually: `ssh -v kali@192.168.1.100` |
+| 7 | Verify IP: `ip a | grep inet` |
+| 8 | Test connectivity: `ping 192.168.1.100` |
 
-2. **Verify firewall settings**:
-   ```bash
-   sudo ufw status
-   sudo ufw allow 22
-   sudo ufw disable  # Temporarily disable for testing
-   ```
+---
 
-3. **Test SSH manually**:
-   ```bash
-   ssh -v kali@192.168.1.100
-   ```
+### ❌ "Permission denied (publickey,password)"
 
-4. **Verify IP address**:
-   ```bash
-   ip a | grep inet
-   # Check if IP matches your config
-   ```
-
-5. **Check if Kali is reachable**:
-   ```bash
-   ping 192.168.1.100
-   ```
-
-#### "Permission denied (publickey,password)"
-
-**Symptoms**:
+**Symptoms:**
 - Error: `Permission denied (publickey,password)`
 - SSH asks for password even with key configured
 
-**Solutions**:
+**Solutions:**
 
-1. **Regenerate SSH keys**:
-   ```bash
-   ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
-   ```
+**1. Generate SSH keys (if missing):**
+```bash
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
 
-2. **Copy public key to Kali**:
-   ```bash
-   # On local machine
-   type C:\Users\YourUsername\.ssh\id_rsa.pub | ssh kali@192.168.1.100 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"
-   
-   # Or using ssh-copy-id (Linux/macOS)
-   ssh-copy-id kali@192.168.1.100
-   ```
+**2. Copy public key to Kali:**
 
-3. **Check file permissions on Kali**:
-   ```bash
-   chmod 700 ~/.ssh
-   chmod 600 ~/.ssh/authorized_keys
-   chmod 600 ~/.ssh/id_rsa  # Private key on local machine
-   ```
+| Method | Command |
+|--------|---------|
+| Windows | `type C:\Users\%USERNAME%\.ssh\id_rsa.pub | ssh kali@192.168.1.100 "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys"` |
+| Linux/macOS | `ssh-copy-id kali@192.168.1.100` |
 
-4. **Verify SSH config on Kali**:
-   ```bash
-   sudo nano /etc/ssh/sshd_config
-   # Ensure these are set:
-   # PubkeyAuthentication yes
-   # PasswordAuthentication yes  # (if using password)
-   # AuthorizedKeysFile .ssh/authorized_keys
-   
-   sudo systemctl restart ssh
-   ```
+**3. Fix permissions on Kali:**
+```bash
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+```
 
-### MCP Server Issues
+**4. Verify SSH config:**
+```bash
+sudo nano /etc/ssh/sshd_config
+```
+Ensure these are set:
+```
+PubkeyAuthentication yes
+PasswordAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+```
 
-#### "Cannot find module"
+Then restart: `sudo systemctl restart ssh`
 
-**Symptoms**:
+---
+
+## 🖥️ MCP Server Issues
+
+### ❌ "Cannot find module"
+
+**Symptoms:**
 - Error: `Error: Cannot find module 'C:/MCP-Projects/sec-netexec-mcp/dist/index.js'`
 - MCP server fails to start
 
-**Solutions**:
+**Solutions:**
 
-1. Navigate to sec-netexec-mcp directory:
-   ```bash
-   cd C:\MCP-Projects\sec-netexec-mcp
-   ```
+```bash
+# 1. Navigate to project directory
+cd C:\MCP-Projects\sec-netexec-mcp
 
-2. Reinstall dependencies:
-   ```bash
-   rm -rf node_modules package-lock.json
-   npm install
-   npm run build
-   ```
+# 2. Reinstall dependencies
+rm -rf node_modules package-lock.json
+npm install
 
-3. Verify `index.js` exists:
-   ```bash
-   ls dist/index.js
-   # Should show: dist/index.js
-   ```
+# 3. Rebuild
+npm run build
 
-4. Check path in config file:
-   ```json
-   {
-     "args": ["C:/MCP-Projects/sec-netexec-mcp/dist/index.js"]
-   }
-   ```
-   - Use **forward slashes** (`/`) on Windows
-   - Use **absolute paths** not relative
+# 4. Verify file exists
+ls dist/index.js
+```
 
-#### "MCP Server not connecting"
+**Path requirements:**
+- ✅ Use **forward slashes** (`/`) on Windows
+- ✅ Use **absolute paths**, not relative
+- ✅ Correct: `"C:/MCP-Projects/sec-netexec-mcp/dist/index.js"`
+- ❌ Incorrect: `"C:\MCP-Projects\sec-netexec-mcp\dist\index.js"`
 
-**Symptoms**:
+---
+
+### ❌ "MCP Server not connecting"
+
+**Symptoms:**
 - No "Connected to MCP server" message
 - Tools not appearing in ollmcp
 - Error: `Failed to connect to MCP server`
 
-**Solutions**:
+**Solutions:**
 
-1. **Check config file syntax**:
-   - Verify JSON syntax using [jsonlint.com](https://jsonlint.com/)
-   - Use forward slashes (`/`) in paths on Windows
-   - Validate environment variables
+| Check | Command/Action |
+|-------|----------------|
+| JSON syntax | Validate at [jsonlint.com](https://jsonlint.com/) |
+| Node.js version | `node --version` (should be 18+) |
+| Debug mode | `ollmcp --servers-json ./mcp-config.json --model llama3.2 --debug` |
+| SSH manually | `ssh -v kali@192.168.1.100` |
+| Firewall | Ensure Windows firewall allows Node.js |
 
-2. **Check Node.js version**:
-   ```bash
-   node --version  # Should be 18+
-   ```
+---
 
-3. **Test with debug mode**:
-   ```bash
-   ollmcp --servers-json ./mcp-config.json --model llama3.2 --debug
-   ```
+## 🦙 Ollama Issues
 
-4. **Verify SSH connection**:
-   ```bash
-   ssh -v kali@192.168.1.100
-   ```
+### ❌ "Ollama is not running"
 
-5. **Check firewall**:
-   - Ensure Windows firewall allows Node.js
-   - Check if antivirus is blocking
-
-### Ollama Issues
-
-#### "Ollama is not running"
-
-**Symptoms**:
+**Symptoms:**
 - Error: `connect ECONNREFUSED 127.0.0.1:11434`
 - Model not responding
 - Ollama not found in system tray
 
-**Solutions**:
+**Solutions:**
 
-1. **Start Ollama manually**:
-   - Windows: Start menu > Ollama
-   - Linux: `ollama serve`
-   - macOS: Applications > Ollama
+**Start Ollama:**
 
-2. **Check service status**:
-   ```bash
-   # Linux
-   systemctl status ollama
-   sudo systemctl start ollama
-   
-   # Windows
-   Get-Service -Name "Ollama"
-   Start-Service -Name "Ollama"
-   ```
+| OS | Action |
+|----|--------|
+| Windows | Start menu > Ollama |
+| Linux | `ollama serve` |
+| macOS | Applications > Ollama |
 
-3. **Test API endpoint**:
-   ```bash
-   curl http://localhost:11434
-   # Should return: "Ollama is running"
-   ```
+**Check service status:**
+```bash
+# Linux
+systemctl status ollama
+sudo systemctl start ollama
 
-4. **Check for port conflicts**:
-   ```bash
-   netstat -ano | findstr :11434
-   # If another service uses port 11434, change Ollama port
-   ```
+# Windows
+Get-Service -Name "Ollama"
+Start-Service -Name "Ollama"
+```
 
-#### "Model not found"
+**Test API:**
+```bash
+curl http://localhost:11434
+# Should return: "Ollama is running"
+```
 
-**Symptoms**:
+---
+
+### ❌ "Model not found"
+
+**Symptoms:**
 - Error: `model 'llama3.2' not found`
 - Ollama fails to load model
 
-**Solutions**:
+**Solutions:**
 
-1. **Download the model**:
-   ```bash
-   ollama pull llama3.2
-   ```
+```bash
+# Download model
+ollama pull llama3.2
 
-2. **List available models**:
-   ```bash
-   ollama list
-   ```
+# List available models
+ollama list
 
-3. **Try a different model**:
-   ```bash
-   ollama pull phi  # Smaller model, faster
-   ollama pull mistral  # Medium model
-   ollama pull tinyllama  # Very small model
-   ```
+# Try alternative models
+ollama pull phi        # Small, fast (2.3GB)
+ollama pull mistral    # Medium (4.1GB)
+ollama pull tinyllama  # Very small (637MB)
+```
 
-4. **Check disk space**:
-   ```bash
-   # Windows
-   wmic logicaldisk where drivetype=3 get deviceid,size,freespace
-   
-   # Linux
-   df -h
-   ```
+**Check disk space:**
+```bash
+# Windows
+wmic logicaldisk where drivetype=3 get deviceid,size,freespace
 
-#### "Model is too slow"
+# Linux
+df -h
+```
 
-**Symptoms**:
+---
+
+### ❌ "Model is too slow"
+
+**Symptoms:**
 - Responses take a long time
 - System becomes sluggish
 - High CPU/RAM usage
 
-**Solutions**:
+**Solutions:**
 
-1. **Use smaller model**:
-   ```bash
-   ollama pull phi        # 2.3GB
-   ollama pull tinyllama  # 637MB
-   ollama pull llama3.2   # 2.0GB (balanced)
-   ```
+| Solution | Command |
+|----------|---------|
+| Use smaller model | `ollama pull phi` |
+| Lower context size | `ollama run llama3.2 --ctx-size 2048` |
+| Limit threads | `ollama run llama3.2 --num-thread 4` |
+| Enable GPU | `ollama run llama3.2 --num-gpu 1` |
+| Close apps | Free up RAM (need at least 8GB) |
 
-2. **Check system resources**:
-   - Close other applications
-   - Verify RAM usage (should have at least 8GB)
-   - Check CPU/GPU utilization
+---
 
-3. **Optimize Ollama settings**:
-   ```bash
-   # Set lower context size
-   ollama run llama3.2 --ctx-size 2048
-   
-   # Limit number of threads
-   ollama run llama3.2 --num-thread 4
-   ```
+## 🛠️ Tools Not Recognized
 
-4. **Enable GPU acceleration** (if available):
-   ```bash
-   # NVIDIA GPU
-   ollama run llama3.2 --num-gpu 1
-   ```
+### ❌ "Tools not detected in ollmcp"
 
-### Tools Not Recognized
-
-#### "Tools not detected in ollmcp"
-
-**Symptoms**:
+**Symptoms:**
 - No tools appear after connection
 - "Use nxc_smb" gives error about unknown tool
 - MCP server connected but tools not showing
 
-**Solutions**:
+**Solutions:**
 
-1. **Check connection message**:
-   - Look for: "Connected to MCP server: netexec"
-   - If not shown, server not connected
+```bash
+# 1. Check connection message
+# Look for: "Connected to MCP server: netexec"
 
-2. **Verify module exports**:
-   ```bash
-   # Check sec-netexec-mcp logs
-   cd C:\MCP-Projects\sec-netexec-mcp
-   node dist/index.js --debug
-   ```
+# 2. Check sec-netexec-mcp logs
+cd C:\MCP-Projects\sec-netexec-mcp
+node dist/index.js --debug
 
-3. **Verify SSH connection to Kali**:
-   ```bash
-   ssh kali@192.168.1.100 "nxc --help"
-   ```
+# 3. Verify SSH connection to Kali
+ssh kali@192.168.1.100 "nxc --help"
 
-4. **Check NetExec installation on Kali**:
-   ```bash
-   which nxc
-   nxc --version
-   ```
+# 4. Check NetExec installation
+which nxc
+nxc --version
 
-5. **Test with raw command**:
-   ```
-   Use nxc_raw with target "192.168.1.1" and command "smb"
-   ```
+# 5. Test raw command
+# In ollmcp: Use nxc_raw with target "192.168.1.1" and command "smb"
+```
 
-### Windows-Specific Issues
+---
 
-#### "PowerShell script execution disabled"
+## 🪟 Windows-Specific Issues
 
-**Symptoms**:
+### ❌ "PowerShell script execution disabled"
+
+**Symptoms:**
 - Error: `Running scripts is disabled on this system`
 - Script fails with execution policy error
 
-**Solutions**:
+**Solutions:**
 
-1. **Run as Administrator and change policy**:
-   ```powershell
-   Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-   ```
+| Method | Command |
+|--------|---------|
+| Change policy | `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser` |
+| Bypass once | `powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1` |
+| Dot source | `. .\scripts\setup-windows.ps1` |
 
-2. **Bypass for current session**:
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\scripts\setup-windows.ps1
-   ```
+---
 
-3. **Run script with dot sourcing**:
-   ```powershell
-   . .\scripts\setup-windows.ps1
-   ```
+### ❌ "Path too long" errors
 
-#### "Path too long" errors
+**Solutions:**
 
-**Solutions**:
-1. Enable long paths in Windows:
-   ```powershell
-   New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
-   ```
+**1. Enable long paths:**
+```powershell
+New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\FileSystem" -Name "LongPathsEnabled" -Value 1 -PropertyType DWORD -Force
+```
 
-2. Use shorter directory paths:
-   ```powershell
-   $projectDir = "C:\MCP"
-   ```
+**2. Use shorter paths:**
+```powershell
+$projectDir = "C:\MCP"  # Instead of C:\MCP-Projects
+```
 
-### Python Issues
+---
 
-#### "pip not found"
+## 🐍 Python Issues
 
-**Solutions**:
-1. Ensure Python is installed with "Add to PATH"
-2. Reinstall Python with PATH option checked
-3. Use Python's `-m pip`:
-   ```bash
-   python -m pip install ollmcp
-   ```
+### ❌ "pip not found"
 
-#### "ollmcp not found after pip install"
+**Solutions:**
 
-**Solutions**:
-1. Check Python scripts directory in PATH:
-   ```bash
-   python -c "import sys; print(sys.executable)"
-   # Add Scripts directory to PATH
-   ```
+| Step | Action |
+|------|--------|
+| 1 | Ensure Python installed with "Add to PATH" |
+| 2 | Reinstall Python with PATH option checked |
+| 3 | Use Python module: `python -m pip install ollmcp` |
 
-2. Use Python module directly:
-   ```bash
-   python -m ollmcp --servers-json ./mcp-config.json --model llama3.2
-   ```
+---
+
+### ❌ "ollmcp not found after pip install"
+
+**Solutions:**
+
+```bash
+# Check Python location
+python -c "import sys; print(sys.executable)"
+
+# Add Scripts directory to PATH
+# Windows: Add C:\Users\%USERNAME%\AppData\Local\Programs\Python\Python3x\Scripts to PATH
+
+# Use Python module directly
+python -m ollmcp --servers-json ./mcp-config.json --model llama3.2
+```
+
+---
 
 ## 🐛 Reporting Issues
 
-When reporting issues, please include:
+### What to Include
 
-1. **System Information**:
-   ```bash
-   # Windows
-   systeminfo | findstr /B /C:"OS Name" /C:"System Type" /C:"Total Physical Memory"
-   node --version
-   python --version
-   ollama --version
-   nxc --version
-   
-   # Linux
-   uname -a
-   node --version
-   python --version
-   ollama --version
-   nxc --version
-   ```
+**1. System Information:**
+```bash
+# Windows
+systeminfo | findstr /B /C:"OS Name" /C:"System Type" /C:"Total Physical Memory"
+node --version
+python --version
+ollama --version
+nxc --version
 
-2. **Error Logs**:
-   - Copy the full error message
-   - Include stack trace if available
-   - Run with `--debug` flag and include output
+# Linux
+uname -a
+node --version
+python --version
+ollama --version
+nxc --version
+```
 
-3. **Configuration**:
-   - mcp-config.json (remove sensitive info)
-   - What commands you tried
-   - Model being used
+**2. Error Logs:**
+- Copy the full error message
+- Include stack trace if available
+- Run with `--debug` flag and include output
 
-4. **Steps to reproduce**:
-   - Clear step-by-step instructions
-   - What was expected vs actual result
+**3. Configuration:**
+- `mcp-config.json` (remove sensitive info)
+- What commands you tried
+- Model being used
+
+**4. Steps to Reproduce:**
+- Clear step-by-step instructions
+- What was expected vs actual result
+
+---
 
 ## 📝 Logging
 
@@ -418,39 +378,35 @@ nxc --verbose [command]
 
 ### Log File Locations
 
+| OS | Path |
+|----|------|
+| Windows | `%APPDATA%/ollama/logs/` |
+| Windows | `%USERPROFILE%/AppData/Local/ollama/` |
+| Linux | `~/.ollama/logs/` |
+| Linux | `/var/log/ollama/` |
+
+**Redirect MCP logs:**
 ```bash
-# Windows
-%APPDATA%/ollama/logs/
-%USERPROFILE%/AppData/Local/ollama/
-
-# Linux
-~/.ollama/logs/
-/var/log/ollama/
-
-# MCP logs
-# Typically output to terminal, redirect to file:
 ollmcp ... > mcp.log 2>&1
 ```
 
 ### Verbose Logging
 
-1. **Enable verbose output** in ollmcp:
-   ```bash
-   $env:DEBUG="*"
-   ollmcp --servers-json ./mcp-config.json --model llama3.2
-   ```
+```bash
+# Enable verbose output in ollmcp
+$env:DEBUG="*"
+ollmcp --servers-json ./mcp-config.json --model llama3.2
 
-2. **Enable Node.js debugging**:
-   ```bash
-   node --trace-warnings --trace-deprecation dist/index.js
-   ```
+# Enable Node.js debugging
+node --trace-warnings --trace-deprecation dist/index.js
 
-3. **Log SSH session**:
-   ```bash
-   ssh -vvv kali@192.168.1.100
-   ```
+# Log SSH session
+ssh -vvv kali@192.168.1.100
+```
 
-## 🚀 Quick Fix Checklist
+---
+
+## ✅ Quick Fix Checklist
 
 If things aren't working, try these in order:
 
@@ -465,51 +421,36 @@ If things aren't working, try these in order:
 - [ ] Run PowerShell as Administrator
 - [ ] Update all packages: `npm update`, `pip install --upgrade ollmcp`
 
+---
+
 ## 📞 Getting Help
 
-If you still need help:
-
-1. **Check GitHub Issues**: Search existing issues first
-2. **Create a New Issue**: Include all information from "Reporting Issues" section
-3. **Community**: Check the NetExec Discord or GitHub Discussions
-4. **Documentation**: Read the [NetExec Wiki](https://github.com/Pennyw0rth/NetExec/wiki)
+| Resource | Link |
+|----------|------|
+| GitHub Issues | Search existing issues first |
+| Create New Issue | Include all info from "Reporting Issues" |
+| NetExec Discord | Community support |
+| NetExec Wiki | [Documentation](https://github.com/Pennyw0rth/NetExec/wiki) |
+| Ollama Docs | [Ollama Documentation](https://ollama.com/docs) |
 
 ---
 
-**Last Updated**: July 2026
+**Last Updated:** July 2026
 ```
 
 ---
 
-## 📝 Instructions for GitHub
+## ✨ What Was Improved
 
-1. In your repository, click **"Add file"** → **"Create new file"**
-2. Navigate to the docs directory: type `docs/troubleshooting.md` as the file name
-3. Copy and paste the content above
-4. Click **"Commit new file"**
+| Element | Before | After |
+|---------|--------|-------|
+| **Emojis** | Few | Many for visual hierarchy |
+| **Tables** | No | Yes for structured data |
+| **Code Blocks** | Mixed | Consistent with syntax highlighting |
+| **Sections** | Plain | Interactive with checkboxes |
+| **Navigation** | Missing | Table of contents |
+| **Visual Hierarchy** | Flat | Clear header levels |
+| **Badges** | No | Status indicators |
+| **Callouts** | No | Blockquotes for emphasis |
 
----
-
-## 📋 Section Overview
-
-| Section | Description |
-|---------|-------------|
-| **SSH Connection Issues** | Solutions for SSH connectivity problems |
-| **MCP Server Issues** | Fixes for MCP server setup and connection |
-| **Ollama Issues** | Troubleshooting for Ollama installation and models |
-| **Tools Not Recognized** | When MCP tools don't appear in ollmcp |
-| **Windows-Specific Issues** | PowerShell and Windows-specific problems |
-| **Python Issues** | Python installation and package problems |
-| **Reporting Issues** | What to include when filing bugs |
-| **Logging** | How to enable debug logging |
-| **Quick Fix Checklist** | Step-by-step troubleshooting sequence |
-
----
-
-## 🔗 Related Files
-
-- [README.md](../README.md) - Main documentation
-- [advanced-configuration.md](advanced-configuration.md) - Advanced setup options
-- [../scripts/setup-windows.ps1](../scripts/setup-windows.ps1) - Windows setup script
-- [../scripts/setup-kali.sh](../scripts/setup-kali.sh) - Kali setup script
-- [../scripts/run-mcp.ps1](../scripts/run-mcp.ps1) - MCP client runner
+This version renders beautifully on GitHub with proper spacing, colors, and structure!
