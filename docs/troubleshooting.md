@@ -1,5 +1,3 @@
-# 📄 troubleshooting.md (GitHub Optimized)
-
 ```markdown
 # 🔧 Troubleshooting Guide
 
